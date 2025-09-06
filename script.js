@@ -1,750 +1,135 @@
-class RadioPlayer {
-    constructor() {
-        this.audio = document.getElementById('audioPlayer');
-        this.playButton = document.getElementById('playButton');
-        this.playIcon = document.getElementById('playIcon');
-        this.songTitle = document.getElementById('songTitle');
-        this.artistName = document.getElementById('artistName');
-        this.coverImage = document.getElementById('coverImage');
-        this.radioPlayer = document.querySelector('.radio-player');
-        this.coverArt = document.querySelector('.cover-art');
-        this.trackInfo = document.querySelector('.track-info');
-        this.volumeControl = document.getElementById('volumeControl');
-        this.volumeSlider = document.getElementById('volumeSlider');
-        this.volumeIcon = document.querySelector('.volume-icon');
-        this.recentlyPlayedContainer = document.querySelector('.recently-played-container');
-        this.recentlyPlayedList = document.getElementById('recentlyPlayedList');
-        this.recentlyPlayedToggle = document.getElementById('recentlyPlayedToggle');
-        this.container = document.querySelector('.container');
-        this.mainContent = document.querySelector('.main-content');
-        this.themeToggle = document.getElementById('themeToggle');
-        this.recentlyPlayed = document.querySelector('.recently-played');
-        this.body = document.body;
-        this.onAirInfo = document.getElementById('onAirInfo');
-        this.onAirName = document.getElementById('onAirName');
-        
-        console.log('On-air elements found:', {
-            onAirInfo: !!this.onAirInfo,
-            onAirName: !!this.onAirName
-        });
-        
-        this.isPlaying = false;
-        this.isLoading = false;
-        this.isInitialLoad = true;
-        this.currentVolume = 0.4; // Start with moderate volume (40% actual, ~65% slider)
-        this.recentTracks = []; // Store recently played tracks
-        this.currentTrackId = null; // Track current song to avoid duplicates
-        this.isRecentlyPlayedVisible = false; // Track visibility state
-        this.lastTrackData = null; // Store last track data to prevent unnecessary updates
-        this.isDarkMode = false; // Track theme state
-        this.currentOnAirData = null; // Store current on-air data to prevent unnecessary updates
-        
-        // AzuraCast configuration
-        this.azuracastBaseUrl = 'https://weareharmony.net'; // Replace with your AzuraCast base URL
-        this.stationId = 'harmony_radio'; // Replace with your station ID/short name
-        this.updateInterval = 10000; // Update every 10 seconds
-        this.updateTimer = null;
-        
-        this.init();
-    }
-    
-    init() {
-        // Set initial loading state - container starts invisible
-        this.setInitialLoading(true);
-        
-        this.playButton.addEventListener('click', () => this.togglePlay());
-        
-        // Volume control event listeners
-        this.volumeSlider.addEventListener('input', (e) => this.handleVolumeChange(e));
-        this.volumeSlider.addEventListener('change', (e) => this.handleVolumeChange(e));
-        
-        // Recently played toggle event listener
-        this.recentlyPlayedToggle.addEventListener('click', () => this.toggleRecentlyPlayed());
-        
-        // Theme toggle event listener
-        this.themeToggle.addEventListener('click', () => this.toggleTheme());
-        
-        // Audio event listeners
-        this.audio.addEventListener('loadstart', () => this.handleLoadStart());
-        this.audio.addEventListener('canplay', () => this.handleCanPlay());
-        this.audio.addEventListener('play', () => this.handlePlay());
-        this.audio.addEventListener('pause', () => this.handlePause());
-        this.audio.addEventListener('error', (e) => this.handleError(e));
-        this.audio.addEventListener('waiting', () => this.handleWaiting());
-        this.audio.addEventListener('playing', () => this.handlePlaying());
-        
-        // Set initial volume to a moderate level (around middle of slider)
-        this.currentVolume = 0.4; // This corresponds to about 65% on the slider
-        this.audio.volume = this.currentVolume;
-        this.updateVolumeSlider();
-        
-        // Load saved theme preference
-        this.loadThemePreference();
-        
-        // Set initial state
-        this.updateUI();
-        
-        // Start fetching track info immediately
-        this.fetchCurrentTrack();
-        
-        // Set up periodic updates
-        this.startPeriodicUpdates();
-    }
-    
-    async togglePlay() {
-        if (this.isLoading) return;
-        
-        try {
-            if (this.isPlaying) {
-                await this.pause();
-            } else {
-                await this.play();
-            }
-        } catch (error) {
-            console.error('Error toggling playback:', error);
-            this.handleError();
-        }
-    }
-    
-    async play() {
-        this.setLoading(true);
-        
-        try {
-            // Load the audio if not already loaded
-            if (this.audio.readyState === 0) {
-                this.audio.load();
-            }
-            
-            await this.audio.play();
-        } catch (error) {
-            console.error('Error playing audio:', error);
-            this.handleError();
-            this.setLoading(false);
-        }
-    }
-    
-    async pause() {
-        this.audio.pause();
-    }
-    
-    handleLoadStart() {
-        this.setLoading(true);
-    }
-    
-    handleCanPlay() {
-        this.setLoading(false);
-    }
-    
-    handlePlay() {
-        this.isPlaying = true;
-        this.setLoading(false);
-        this.updateUI();
-        this.showVolumeControl();
-        
-        // Start more frequent updates when playing
-        this.startPeriodicUpdates();
-    }
-    
-    handlePause() {
-        this.isPlaying = false;
-        this.updateUI();
-        this.hideVolumeControl();
-        
-        // Stop periodic updates when paused (but keep occasional updates)
-        this.stopPeriodicUpdates();
-        this.startPeriodicUpdates(30000); // Update every 30 seconds when paused
-    }
-    
-    handleWaiting() {
-        this.setLoading(true);
-    }
-    
-    handlePlaying() {
-        this.setLoading(false);
-    }
-    
-    handleError(error) {
-        console.error('Audio error:', error);
-        this.isPlaying = false;
-        this.setLoading(false);
-        this.updateUI();
-        this.hideVolumeControl();
-        
-        // Show error message
-        this.songTitle.textContent = 'Connection Error';
-        this.artistName.textContent = 'Please try again later';
-        
-        // Stop periodic updates on error
-        this.stopPeriodicUpdates();
-    }
-    
-    setLoading(loading) {
-        this.isLoading = loading;
-        this.playButton.classList.toggle('loading', loading);
-        this.playButton.disabled = loading;
-        this.radioPlayer.classList.toggle('loading', loading);
-    }
-    
-    setInitialLoading(loading) {
-        if (loading) {
-            this.radioPlayer.classList.add('initial-loading');
-            this.radioPlayer.classList.remove('loaded');
-        } else {
-            this.radioPlayer.classList.remove('initial-loading');
-            this.radioPlayer.classList.add('loaded');
-        }
-    }
-    
-    setCoverLoading(loading) {
-        this.coverArt.classList.toggle('loading', loading);
-        this.coverImage.classList.toggle('loading', loading);
-    }
-    
-    setTrackInfoUpdating(updating) {
-        this.trackInfo.classList.toggle('updating', updating);
-    }
-    
-    showVolumeControl() {
-        this.volumeControl.classList.add('visible');
-    }
-    
-    hideVolumeControl() {
-        this.volumeControl.classList.remove('visible');
-    }
-    
-    handleVolumeChange(event) {
-        const sliderValue = event.target.value; // 0-100
-        
-        // Custom volume curve: left quiet, middle quieter, right not as loud
-        let volume;
-        if (sliderValue <= 50) {
-            // Left half: 0-50% slider = 0-30% volume (quiet to moderate)
-            volume = (sliderValue / 50) * 0.3;
-        } else {
-            // Right half: 50-100% slider = 30-70% volume (moderate to not too loud)
-            volume = 0.3 + ((sliderValue - 50) / 50) * 0.4;
-        }
-        
-        this.currentVolume = volume;
-        this.audio.volume = volume;
-        this.updateVolumeIcon(volume);
-        this.updateVolumeSliderBackground(sliderValue);
-    }
-    
-    updateVolumeSlider() {
-        // Convert actual volume back to slider position for display
-        let sliderValue;
-        if (this.currentVolume <= 0.3) {
-            // 0-30% volume = 0-50% slider position
-            sliderValue = (this.currentVolume / 0.3) * 50;
-        } else {
-            // 30-70% volume = 50-100% slider position
-            sliderValue = 50 + ((this.currentVolume - 0.3) / 0.4) * 50;
-        }
-        
-        this.volumeSlider.value = Math.round(sliderValue);
-        this.updateVolumeIcon(this.currentVolume);
-        this.updateVolumeSliderBackground(Math.round(sliderValue));
-    }
-    
-    updateVolumeIcon(volume) {
-        if (volume === 0) {
-            this.volumeIcon.className = 'fas fa-volume-mute volume-icon';
-        } else if (volume < 0.5) {
-            this.volumeIcon.className = 'fas fa-volume-down volume-icon';
-        } else {
-            this.volumeIcon.className = 'fas fa-volume-up volume-icon';
-        }
-    }
-    
-    updateVolumeSliderBackground(value) {
-        const percentage = value;
-        this.volumeSlider.style.background = `linear-gradient(to right, #667eea 0%, #667eea ${percentage}%, #ddd ${percentage}%, #ddd 100%)`;
-    }
-    
-    toggleRecentlyPlayed() {
-        this.isRecentlyPlayedVisible = !this.isRecentlyPlayedVisible;
-        
-        if (this.isRecentlyPlayedVisible) {
-            // Opening: expand container and slide panel simultaneously
-            this.container.classList.add('expanded');
-            this.recentlyPlayedContainer.classList.add('visible');
-            this.recentlyPlayedToggle.classList.add('active');
-        } else {
-            // Closing: slide panel back and shrink container simultaneously
-            this.recentlyPlayedContainer.classList.remove('visible');
-            this.recentlyPlayedToggle.classList.remove('active');
-            this.container.classList.remove('expanded');
-        }
-    }
-    
-    toggleTheme() {
-        this.isDarkMode = !this.isDarkMode;
-        this.applyTheme();
-        this.saveThemePreference();
-    }
-    
-    applyTheme() {
-        if (this.isDarkMode) {
-            this.body.classList.add('dark-mode');
-            this.radioPlayer.classList.add('dark-mode');
-            this.recentlyPlayed.classList.add('dark-mode');
-            this.themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
-        } else {
-            this.body.classList.remove('dark-mode');
-            this.radioPlayer.classList.remove('dark-mode');
-            this.recentlyPlayed.classList.remove('dark-mode');
-            this.themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
-        }
-        
-        // Update volume slider background for current theme
-        const volumePercent = Math.round(this.currentVolume * 100);
-        if (this.isDarkMode) {
-            // Convert actual volume back to slider position for display
-            let sliderValue;
-            if (this.currentVolume <= 0.3) {
-                sliderValue = (this.currentVolume / 0.3) * 50;
-            } else {
-                sliderValue = 50 + ((this.currentVolume - 0.3) / 0.4) * 50;
-            }
-            const percentage = Math.round(sliderValue);
-            this.volumeSlider.style.background = `linear-gradient(to right, #8a9eff 0%, #8a9eff ${percentage}%, #555 ${percentage}%, #555 100%)`;
-        } else {
-            this.updateVolumeSlider();
-        }
-    }
-    
-    saveThemePreference() {
-        localStorage.setItem('euphoriaRadioTheme', this.isDarkMode ? 'dark' : 'light');
-    }
-    
-    loadThemePreference() {
-        const savedTheme = localStorage.getItem('euphoriaRadioTheme');
-        if (savedTheme === 'dark') {
-            this.isDarkMode = true;
-            this.applyTheme();
-        }
-    }
-    
-    showRecentlyPlayedContainer() {
-        // This method is no longer needed since we use the toggle button
-        // But keeping it for backward compatibility
-    }
-    
-    updateRecentlyPlayed(azuraData) {
-        if (!azuraData || !azuraData.song_history) return;
-        
-        const songHistory = azuraData.song_history;
-        if (!songHistory || songHistory.length === 0) return;
-        
-        // Clear loading placeholders if this is the first real data
-        if (this.recentTracks.length === 0) {
-            this.clearLoadingPlaceholders();
-        }
-        
-        let hasNewTracks = false;
-        
-        // Process song history in reverse order to maintain proper chronological order
-        const reversedHistory = [...songHistory].reverse();
-        
-        reversedHistory.forEach(historyItem => {
-            if (historyItem.song) {
-                const track = {
-                    id: historyItem.song.id || `${historyItem.song.title}-${historyItem.song.artist}`,
-                    title: historyItem.song.title || 'Unknown Track',
-                    artist: historyItem.song.artist || 'Unknown Artist',
-                    cover: historyItem.song.art || null,
-                    playedAt: historyItem.played_at || Date.now()
-                };
-                
-                // Check if this is a new track before adding
-                const wasAdded = this.addToRecentTracks(track);
-                if (wasAdded) hasNewTracks = true;
-            }
-        });
-        
-        // Only re-render if there are actually new tracks
-        if (hasNewTracks) {
-            this.renderRecentTracks();
-        }
-    }
-    
-    addToRecentTracks(track) {
-        // Don't add if it's the same as the current track or already in recent tracks
-        if (track.id === this.currentTrackId) return false;
-        
-        // Check if track already exists
-        const existingIndex = this.recentTracks.findIndex(t => t.id === track.id);
-        if (existingIndex !== -1) return false;
-        
-        // Add to beginning (most recent first)
-        this.recentTracks.unshift(track);
-        
-        // Keep only 5 tracks
-        this.recentTracks = this.recentTracks.slice(0, 5);
-        
-        return true; // Return true if track was actually added
-    }
-    
-    clearLoadingPlaceholders() {
-        this.recentlyPlayedList.innerHTML = '';
-    }
-    
-    renderRecentTracks() {
-        // Clear current content
-        this.recentlyPlayedList.innerHTML = '';
-        
-        if (this.recentTracks.length === 0) {
-            this.recentlyPlayedList.innerHTML = '<div class="no-recent-tracks">No recent tracks available</div>';
-            return;
-        }
-        
-        this.recentTracks.forEach((track, index) => {
-            const recentItem = this.createRecentTrackElement(track, index);
-            this.recentlyPlayedList.appendChild(recentItem);
-        });
-    }
-    
-    createRecentTrackElement(track, index) {
-        const recentItem = document.createElement('div');
-        recentItem.className = 'recent-item entering';
-        recentItem.style.animationDelay = `${index * 0.1}s`;
-        
-        const coverElement = document.createElement('div');
-        coverElement.className = 'recent-cover';
-        
-        if (track.cover) {
-            const img = document.createElement('img');
-            img.src = track.cover;
-            img.alt = `${track.title} cover`;
-            img.onerror = () => {
-                img.src = 'https://via.placeholder.com/45x45/667eea/ffffff?text=♪';
-            };
-            coverElement.appendChild(img);
-        } else {
-            const placeholder = document.createElement('div');
-            placeholder.style.cssText = `
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-size: 18px;
-                border-radius: 6px;
-            `;
-            placeholder.textContent = '♪';
-            coverElement.appendChild(placeholder);
-        }
-        
-        const infoElement = document.createElement('div');
-        infoElement.className = 'recent-info';
-        
-        const titleElement = document.createElement('h4');
-        titleElement.textContent = track.title;
-        titleElement.title = track.title; // Tooltip for full title
-        
-        const artistElement = document.createElement('p');
-        artistElement.textContent = track.artist;
-        artistElement.title = track.artist; // Tooltip for full artist
-        
-        infoElement.appendChild(titleElement);
-        infoElement.appendChild(artistElement);
-        
-        recentItem.appendChild(coverElement);
-        recentItem.appendChild(infoElement);
-        
-        // Remove entering animation class after animation completes
-        setTimeout(() => {
-            recentItem.classList.remove('entering');
-        }, 500);
-        
-        return recentItem;
-    }
-    
-    updateUI() {
-        if (this.isPlaying) {
-            this.playIcon.className = 'fas fa-pause';
-            this.playButton.classList.add('playing');
-        } else {
-            this.playIcon.className = 'fas fa-play';
-            this.playButton.classList.remove('playing');
-        }
-    }
-    
-    startPeriodicUpdates(interval = null) {
-        this.stopPeriodicUpdates();
-        
-        const updateInterval = interval || this.updateInterval;
-        this.updateTimer = setInterval(() => {
-            this.fetchCurrentTrack();
-        }, updateInterval);
-    }
-    
-    stopPeriodicUpdates() {
-        if (this.updateTimer) {
-            clearInterval(this.updateTimer);
-            this.updateTimer = null;
-        }
-    }
-    
-    async fetchCurrentTrack() {
-        try {
-            // Show loading state for track info updates only if track is actually changing
-            const shouldShowLoading = !this.isInitialLoad && this.lastTrackData;
-            
-            // AzuraCast API endpoint for current song info
-            const apiUrl = `${this.azuracastBaseUrl}/api/nowplaying/${this.stationId}`;
-            
-            const response = await fetch(apiUrl, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json'
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            
-            // Check if track has actually changed before updating UI
-            if (this.hasTrackChanged(data)) {
-                if (shouldShowLoading) {
-                    this.setTrackInfoUpdating(true);
-                    // Small delay only if track actually changed
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                }
-                
-                this.updateTrackInfo(data);
-                this.lastTrackData = data;
-            }
-            
-            // Always update recently played (but only render if changed)
-            this.updateRecentlyPlayed(data);
-            
-            // Remove initial loading state after first successful fetch
-            if (this.isInitialLoad) {
-                setTimeout(() => {
-                    this.setInitialLoading(false);
-                    this.isInitialLoad = false;
-                }, 300);
-            }
-            
-        } catch (error) {
-            console.error('Error fetching current track from AzuraCast:', error);
-            
-            // Fallback to default info
-            this.updateTrackInfo(null);
-            
-            // Remove initial loading state even on error
-            if (this.isInitialLoad) {
-                setTimeout(() => {
-                    this.setInitialLoading(false);
-                    this.isInitialLoad = false;
-                }, 300);
-            }
-        } finally {
-            // Always remove updating state
-            this.setTrackInfoUpdating(false);
-        }
-    }
-    
-    hasTrackChanged(newData) {
-        if (!this.lastTrackData && newData) return true;
-        if (!newData) return false;
-        
-        const oldSong = this.lastTrackData?.now_playing?.song;
-        const newSong = newData?.now_playing?.song;
-        
-        if (!oldSong && !newSong) return false;
-        if (!oldSong || !newSong) return true;
-        
-        return (
-            oldSong.title !== newSong.title ||
-            oldSong.artist !== newSong.artist ||
-            oldSong.art !== newSong.art
-        );
-    }
-    
-    updateTrackInfo(azuraData = null) {
-        if (azuraData && azuraData.now_playing && azuraData.now_playing.song) {
-            const song = azuraData.now_playing.song;
-            
-            // Update song title and artist
-            const title = song.title || 'Unknown Track';
-            const artist = song.artist || 'Unknown Artist';
-            
-            // Update current track ID for recent tracks comparison
-            this.currentTrackId = song.id || `${title}-${artist}`;
-            
-            this.songTitle.textContent = title;
-            this.artistName.textContent = artist;
-            
-            // Update cover art if available
-            if (song.art && song.art !== this.coverImage.src) {
-                this.setCoverLoading(true);
-                
-                // Create a new image to preload
-                const newImage = new Image();
-                newImage.onload = () => {
-                    this.coverImage.src = song.art;
-                    this.coverImage.alt = `${title} by ${artist}`;
-                    this.setCoverLoading(false);
-                };
-                newImage.onerror = () => {
-                    this.coverImage.src = 'https://via.placeholder.com/200x200/667eea/ffffff?text=Euphoria+Radio';
-                    this.coverImage.alt = 'Cover Art';
-                    this.setCoverLoading(false);
-                };
-                newImage.src = song.art;
-            } else if (!song.art) {
-                // Use default cover art if none available
-                this.coverImage.src = 'https://via.placeholder.com/200x200/667eea/ffffff?text=Euphoria+Radio';
-                this.coverImage.alt = 'Cover Art';
-            }
-            
-            // Update page title with current song
-            document.title = `${title} - ${artist} | Euphoria Radio`;
-            
-            // Update Open Graph meta tags for better social media embeds
-            this.updateMetaTags(title, artist, song.art);
-            
-            // Update on-air information
-            this.updateOnAirInfo(azuraData);
-            
-        } else {
-            // Fallback for when no data is available
-            this.currentTrackId = null;
-            
-            if (this.isPlaying) {
-                this.songTitle.textContent = 'Live Stream';
-                this.artistName.textContent = 'Euphoria Radio';
-            } else {
-                this.songTitle.textContent = 'Now Playing';
-                this.artistName.textContent = 'Euphoria Radio';
-            }
-            
-            // Reset to default cover art
-            this.coverImage.src = 'https://via.placeholder.com/200x200/667eea/ffffff?text=Euphoria+Radio';
-            this.coverImage.alt = 'Cover Art';
-            
-            // Reset page title
-            document.title = 'Euphoria Radio - Live Stream';
-            
-            // Reset meta tags to default
-            this.updateMetaTags('Live Stream', 'Euphoria Radio', null);
-            
-            // Hide on-air info when no data available
-            this.updateOnAirInfo(null);
-        }
-    }
-    
-    updateMetaTags(title, artist, coverArt) {
-        const nowPlayingText = `🎵 Now Playing: ${title} - ${artist}`;
-        const defaultCover = 'https://via.placeholder.com/1200x630/667eea/ffffff?text=Euphoria+Radio';
-        const imageUrl = coverArt || defaultCover;
-        
-        // Update Open Graph meta tags
-        this.updateMetaTag('property', 'og:title', `Euphoria Radio - ${title}`);
-        this.updateMetaTag('property', 'og:description', `${nowPlayingText} | Listen to Euphoria Radio live stream`);
-        this.updateMetaTag('property', 'og:image', imageUrl);
-        this.updateMetaTag('property', 'og:image:alt', `Now Playing: ${title} by ${artist}`);
-        
-        // Update Twitter meta tags
-        this.updateMetaTag('name', 'twitter:title', `Euphoria Radio - ${title}`);
-        this.updateMetaTag('name', 'twitter:description', `${nowPlayingText} | Listen to Euphoria Radio live stream`);
-        this.updateMetaTag('name', 'twitter:image', imageUrl);
-        this.updateMetaTag('name', 'twitter:image:alt', `Now Playing: ${title} by ${artist}`);
-        
-        // Update meta description
-        this.updateMetaTag('name', 'description', `${nowPlayingText} | Listen to Euphoria Radio live stream with the latest hits and now playing information.`);
-    }
-    
-    updateMetaTag(attribute, value, content) {
-        let metaTag = document.querySelector(`meta[${attribute}="${value}"]`);
-        if (metaTag) {
-            metaTag.setAttribute('content', content);
-        } else {
-            // Create the meta tag if it doesn't exist
-            metaTag = document.createElement('meta');
-            metaTag.setAttribute(attribute, value);
-            metaTag.setAttribute('content', content);
-            document.head.appendChild(metaTag);
-        }
-    }
-    
-    updateOnAirInfo(azuraData) {
-        console.log('updateOnAirInfo called with:', azuraData ? azuraData.live : 'null data');
-        
-        if (azuraData && azuraData.live && azuraData.live.is_live && azuraData.live.streamer_name) {
-            const streamerName = azuraData.live.streamer_name.trim();
-            console.log('Streamer is live:', streamerName);
-            
-            // Check if on-air info has changed to prevent unnecessary updates
-            if (this.currentOnAirData === streamerName) {
-                console.log('Same streamer, skipping update');
-                return;
-            }
-            
-            console.log('Updating on-air display for:', streamerName);
-            this.currentOnAirData = streamerName;
-            this.onAirName.textContent = streamerName;
-            this.onAirInfo.style.display = 'block';
-            
-            // Add visible class after a small delay for smooth animation
-            setTimeout(() => {
-                this.onAirInfo.classList.add('visible');
-                console.log('On-air display should now be visible');
-            }, 100);
-            
-        } else {
-            console.log('No one is live or missing data');
-            // No one is live, hide the on-air info
-            if (this.currentOnAirData !== null) {
-                console.log('Hiding on-air display');
-                this.currentOnAirData = null;
-                this.onAirInfo.classList.remove('visible');
-                
-                // Hide completely after animation
-                setTimeout(() => {
-                    this.onAirInfo.style.display = 'none';
-                }, 400);
-            }
-        }
-    }
-    
-    // Method to manually update track info (keeping for backward compatibility)
-    updateCurrentTrack(title, artist, coverUrl) {
-        this.songTitle.textContent = title || 'Live Stream';
-        this.artistName.textContent = artist || 'Euphoria Radio';
-        
-        if (coverUrl) {
-            this.coverImage.src = coverUrl;
-            this.coverImage.alt = `${title} by ${artist}`;
-        }
-    }
-    
-    // Cleanup method
-    destroy() {
-        this.stopPeriodicUpdates();
-        if (this.audio) {
-            this.audio.pause();
-            this.audio.src = '';
-        }
-    }
+const wrapper = document.querySelector(".wrapper"),
+  musicImg = wrapper.querySelector(".img-area img"),
+  musicName = wrapper.querySelector(".song-details .name"),
+  musicArtist = wrapper.querySelector(".song-details .artist"),
+  playPauseBtn = wrapper.querySelector(".play-pause"),
+  mainAudio = wrapper.querySelector("#main-audio"),
+  progressArea = wrapper.querySelector(".progress-area"),
+  progressBar = progressArea.querySelector(".progress-bar"),
+  musicList = wrapper.querySelector(".music-list"),
+  moreMusicBtn = wrapper.querySelector("#more-music"),
+  closeMoreMusic = musicList.querySelector("#close"),
+  ulTag = wrapper.querySelector("ul"),
+  currentTimeEl = wrapper.querySelector(".current-time"),
+  volumeWrapper = wrapper.querySelector(".volume-wrapper"),
+  volumeSlider = wrapper.querySelector(".volume-panel input");
+
+let isPlaying = false;
+let fakeTime = 0;
+let fakeTimerInterval = null;
+let lastSongId = null;
+
+const streamUrl = "https://weareharmony.net/listen/harmony_radio/radio.mp3";
+const apiUrl = "https://weareharmony.net/api/nowplaying/harmony_radio";
+
+// Load initial stream
+mainAudio.src = streamUrl;
+currentTimeEl.innerText = "LIVE";
+mainAudio.volume = 0.5; // default volume
+volumeSlider.value = 0.5;
+
+// --- Play / Pause ---
+function playMusic() {
+  isPlaying = true;
+  wrapper.classList.add("paused");
+  playPauseBtn.querySelector("i").innerText = "pause";
+  mainAudio.play();
+
+  if (fakeTimerInterval) clearInterval(fakeTimerInterval);
+  fakeTimerInterval = setInterval(() => {
+    fakeTime++;
+    updateFakeProgress();
+  }, 1000);
 }
 
-// Initialize the radio player when the DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    const player = new RadioPlayer();
-    
-    // Cleanup on page unload
-    window.addEventListener('beforeunload', () => {
-        player.destroy();
-    });
+function pauseMusic() {
+  isPlaying = false;
+  wrapper.classList.remove("paused");
+  playPauseBtn.querySelector("i").innerText = "play_arrow";
+  mainAudio.pause();
+
+  if (fakeTimerInterval) clearInterval(fakeTimerInterval);
+}
+
+playPauseBtn.addEventListener("click", () => {
+  isPlaying ? pauseMusic() : playMusic();
 });
 
+// --- Volume Toggle Panel ---
+volumeWrapper.addEventListener("click", () => {
+  volumeWrapper.classList.toggle("show");
+});
 
+// --- Volume Slider ---
+volumeSlider.addEventListener("input", (e) => {
+  mainAudio.volume = e.target.value;
+});
+
+// --- Fetch Now Playing Info ---
+async function fetchNowPlaying() {
+  try {
+    const response = await fetch(apiUrl);
+    const data = await response.json();
+    const song = data.now_playing.song;
+
+    // Song Info
+    musicName.innerText = song.title || "Unknown Title";
+    musicArtist.innerText = song.artist || "Unknown Artist";
+
+    // Cover Art
+    musicImg.src = song.art
+      ? song.art
+      : "https://via.placeholder.com/300x300/667eea/ffffff?text=Euphoria+Radio";
+
+    // Recently Played
+    renderRecentlyPlayed(data.song_history);
+
+    // Reset fake timer if track changed
+    if (lastSongId !== song.id) {
+      fakeTime = 0;
+      updateFakeProgress();
+      lastSongId = song.id;
+    }
+  } catch (error) {
+    console.error("Error fetching now playing:", error);
+  }
+}
+
+// --- Render Recently Played List ---
+function renderRecentlyPlayed(history) {
+  ulTag.innerHTML = "";
+  history.forEach((track) => {
+    const liTag = `
+      <li>
+        <div class="row">
+          <span>${track.song.title}</span>
+          <p>${track.song.artist}</p>
+        </div>
+        <span class="audio-duration">${new Date(track.played_at * 1000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span>
+      </li>
+    `;
+    ulTag.insertAdjacentHTML("beforeend", liTag);
+  });
+}
+
+// --- Fake Progress Bar ---
+function updateFakeProgress() {
+  const percent = (fakeTime % 180) / 180 * 100; // simulate ~3min loop
+  progressBar.style.width = `${percent}%`;
+
+  const mins = Math.floor(fakeTime / 60);
+  const secs = (fakeTime % 60).toString().padStart(2, "0");
+  currentTimeEl.innerText = `${mins}:${secs}`;
+}
+
+// --- Show/Hide Recently Played ---
+moreMusicBtn.addEventListener("click", () => {
+  musicList.classList.toggle("show");
+});
+closeMoreMusic.addEventListener("click", () => {
+  musicList.classList.remove("show");
+});
+
+// --- Refresh Now Playing Info every 15s ---
+setInterval(fetchNowPlaying, 15000);
+fetchNowPlaying();

@@ -1,128 +1,72 @@
-<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Euphoria Radio</title>
-    
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Radio Player</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
 </head>
 <body>
-    <div class="container">
-        <div class="main-content">
-            <div class="radio-player">
-                <button id="themeToggle" class="theme-toggle">
-                    <i class="fas fa-moon"></i>
-                </button>
-                
-                <button id="recentlyPlayedToggle" class="recently-played-toggle">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                
-                <div class="cover-art">
-                    <img id="coverImage" src="https://via.placeholder.com/200x200/667eea/ffffff?text=Euphoria+Radio" alt="Cover Art">
-                </div>
-                
-                <div class="track-info">
-                    <h2 id="songTitle">Now Playing</h2>
-                    <p id="artistName">Euphoria Radio</p>
-                </div>
-                
-                <div id="onAirInfo" class="on-air-info" style="display: none;">
-                    <div class="on-air-content">
-                        <i class="fas fa-microphone on-air-icon"></i>
-                        <div class="on-air-text">
-                            <span class="on-air-label">On Air:</span>
-                            <span id="onAirName" class="on-air-name"></span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="controls">
-                    <button id="playButton" class="play-btn">
-                        <i class="fas fa-play" id="playIcon"></i>
-                    </button>
-                    <div id="volumeControl" class="volume-control">
-                        <i class="fas fa-volume-up volume-icon"></i>
-                        <input type="range" id="volumeSlider" class="volume-slider" min="0" max="100" value="100">
-                    </div>
-                </div>
-                
-                <div class="station-info">
-                    <h3>Euphoria Radio</h3>
-                </div>
-            </div>
-        </div>
-        
-        <div class="recently-played-container">
-            <div class="recently-played">
-                <h3>Recently Played</h3>
-                <div id="recentlyPlayedList" class="recent-list">
-                    <div class="recent-item loading-placeholder">
-                        <div class="recent-cover">
-                            <div class="placeholder-cover"></div>
-                        </div>
-                        <div class="recent-info">
-                            <div class="placeholder-title"></div>
-                            <div class="placeholder-artist"></div>
-                        </div>
-                    </div>
-                    <div class="recent-item loading-placeholder">
-                        <div class="recent-cover">
-                            <div class="placeholder-cover"></div>
-                        </div>
-                        <div class="recent-info">
-                            <div class="placeholder-title"></div>
-                            <div class="placeholder-artist"></div>
-                        </div>
-                    </div>
-                    <div class="recent-item loading-placeholder">
-                        <div class="recent-cover">
-                            <div class="placeholder-cover"></div>
-                        </div>
-                        <div class="recent-info">
-                            <div class="placeholder-title"></div>
-                            <div class="placeholder-artist"></div>
-                        </div>
-                    </div>
-                    <div class="recent-item loading-placeholder">
-                        <div class="recent-cover">
-                            <div class="placeholder-cover"></div>
-                        </div>
-                        <div class="recent-info">
-                            <div class="placeholder-title"></div>
-                            <div class="placeholder-artist"></div>
-                        </div>
-                    </div>
-                    <div class="recent-item loading-placeholder">
-                        <div class="recent-cover">
-                            <div class="placeholder-cover"></div>
-                        </div>
-                        <div class="recent-info">
-                            <div class="placeholder-title"></div>
-                            <div class="placeholder-artist"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <audio id="audioPlayer" preload="none">
-            <source src="https://weareharmony.net/listen/harmony_radio/radio.mp3" type="audio/mpeg">
-            Your browser does not support the audio element.
-        </audio>
+  <div class="wrapper">
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <i class="material-icons">expand_more</i>
+      <span>Now Playing</span>
+      <i class="material-icons">more_horiz</i>
     </div>
 
-    <script src="script.js"></script>
-    <script>
-        // Set the current URL for Open Graph
-        document.addEventListener('DOMContentLoaded', () => {
-            const urlMeta = document.querySelector('meta[property="og:url"]');
-            if (urlMeta) {
-                urlMeta.setAttribute('content', window.location.href);
-            }
-        });
-    </script>
+    <!-- Cover Art -->
+    <div class="img-area">
+      <img src="" alt="Now Playing">
+    </div>
+
+    <!-- Song Details -->
+    <div class="song-details">
+      <p class="name">Loading...</p>
+      <p class="artist"></p>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="progress-area">
+      <div class="progress-bar">
+        <audio id="main-audio" src=""></audio>
+      </div>
+      <div class="song-timer">
+        <span class="current-time">LIVE</span>
+      </div>
+    </div>
+
+    <!-- Controls (Play / Pause + Volume) -->
+    <div class="controls">
+  <div class="volume-wrapper">
+    <i class="material-icons">volume_up</i>
+    <div class="volume-panel">
+      <input type="range" min="0" max="1" step="0.01" value="0.5">
+    </div>
+  </div>
+  <div class="play-pause">
+    <i class="material-icons play">play_arrow</i>
+  </div>
+  <i id="more-music" class="material-icons">queue_music</i>
+</div>
+
+
+
+    <!-- Recently Played List -->
+    <div class="music-list">
+      <div class="header">
+        <div class="row">
+          <i class="list material-icons">queue_music</i>
+          <span>Recently Played</span>
+        </div>
+        <i id="close" class="material-icons">close</i>
+      </div>
+      <ul>
+        <!-- List items will be populated by JS -->
+      </ul>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
