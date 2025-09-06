@@ -203,6 +203,63 @@ body.dark-mode {
     transform: translateY(5px);
 }
 
+.on-air-info {
+    margin-bottom: 20px;
+    padding: 12px 16px;
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 12px;
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    transition: all 0.4s ease;
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
+.on-air-info.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.on-air-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.on-air-icon {
+    color: #667eea;
+    font-size: 16px;
+    animation: pulse 2s infinite;
+}
+
+.on-air-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.on-air-label {
+    font-size: 0.8em;
+    color: #666;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.on-air-name {
+    font-size: 1em;
+    color: #333;
+    font-weight: 600;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+
 .controls {
     margin-bottom: 25px;
     display: flex;
@@ -637,6 +694,23 @@ body.dark-mode {
 
 .radio-player.dark-mode .track-info p {
     color: #b0b0b0;
+}
+
+.radio-player.dark-mode .on-air-info {
+    background: rgba(138, 158, 255, 0.1);
+    border-color: rgba(138, 158, 255, 0.2);
+}
+
+.radio-player.dark-mode .on-air-icon {
+    color: #8a9eff;
+}
+
+.radio-player.dark-mode .on-air-label {
+    color: #b0b0b0;
+}
+
+.radio-player.dark-mode .on-air-name {
+    color: #e0e0e0;
 }
 
 .radio-player.dark-mode .station-info h3 {

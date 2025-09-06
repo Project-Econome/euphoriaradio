@@ -20,6 +20,8 @@ class RadioPlayer {
         this.themeToggle = document.getElementById('themeToggle');
         this.recentlyPlayed = document.querySelector('.recently-played');
         this.body = document.body;
+        this.onAirInfo = document.getElementById('onAirInfo');
+        this.onAirName = document.getElementById('onAirName');
         
         this.isPlaying = false;
         this.isLoading = false;
@@ -30,6 +32,7 @@ class RadioPlayer {
         this.isRecentlyPlayedVisible = false; // Track visibility state
         this.lastTrackData = null; // Store last track data to prevent unnecessary updates
         this.isDarkMode = false; // Track theme state
+        this.currentOnAirData = null; // Store current on-air data to prevent unnecessary updates
         
         // AzuraCast configuration
         this.azuracastBaseUrl = 'https://weareharmony.net'; // Replace with your AzuraCast base URL
@@ -604,6 +607,9 @@ class RadioPlayer {
             // Update Open Graph meta tags for better social media embeds
             this.updateMetaTags(title, artist, song.art);
             
+            // Update on-air information
+            this.updateOnAirInfo(azuraData);
+            
         } else {
             // Fallback for when no data is available
             this.currentTrackId = null;
@@ -625,6 +631,9 @@ class RadioPlayer {
             
             // Reset meta tags to default
             this.updateMetaTags('Live Stream', 'Euphoria Radio', null);
+            
+            // Hide on-air info when no data available
+            this.updateOnAirInfo(null);
         }
     }
     
@@ -659,6 +668,36 @@ class RadioPlayer {
             metaTag.setAttribute(attribute, value);
             metaTag.setAttribute('content', content);
             document.head.appendChild(metaTag);
+        }
+    }
+    
+    updateOnAirInfo(azuraData) {
+        if (azuraData && azuraData.live && azuraData.live.is_live && azuraData.live.streamer_name) {
+            const streamerName = azuraData.live.streamer_name.trim();
+            
+            // Check if on-air info has changed to prevent unnecessary updates
+            if (this.currentOnAirData === streamerName) return;
+            
+            this.currentOnAirData = streamerName;
+            this.onAirName.textContent = streamerName;
+            this.onAirInfo.style.display = 'block';
+            
+            // Add visible class after a small delay for smooth animation
+            setTimeout(() => {
+                this.onAirInfo.classList.add('visible');
+            }, 100);
+            
+        } else {
+            // No one is live, hide the on-air info
+            if (this.currentOnAirData !== null) {
+                this.currentOnAirData = null;
+                this.onAirInfo.classList.remove('visible');
+                
+                // Hide completely after animation
+                setTimeout(() => {
+                    this.onAirInfo.style.display = 'none';
+                }, 400);
+            }
         }
     }
     
