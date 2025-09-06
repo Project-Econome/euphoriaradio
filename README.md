@@ -1,3 +1,2 @@
-# euphoriaradio.me (Currently radio.weareharmony.net)
-
+# euphoriaradio.me
 Frontend code for euphoriaradio.me
