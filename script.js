@@ -23,6 +23,11 @@ class RadioPlayer {
         this.onAirInfo = document.getElementById('onAirInfo');
         this.onAirName = document.getElementById('onAirName');
         
+        console.log('On-air elements found:', {
+            onAirInfo: !!this.onAirInfo,
+            onAirName: !!this.onAirName
+        });
+        
         this.isPlaying = false;
         this.isLoading = false;
         this.isInitialLoad = true;
@@ -672,12 +677,19 @@ class RadioPlayer {
     }
     
     updateOnAirInfo(azuraData) {
+        console.log('updateOnAirInfo called with:', azuraData ? azuraData.live : 'null data');
+        
         if (azuraData && azuraData.live && azuraData.live.is_live && azuraData.live.streamer_name) {
             const streamerName = azuraData.live.streamer_name.trim();
+            console.log('Streamer is live:', streamerName);
             
             // Check if on-air info has changed to prevent unnecessary updates
-            if (this.currentOnAirData === streamerName) return;
+            if (this.currentOnAirData === streamerName) {
+                console.log('Same streamer, skipping update');
+                return;
+            }
             
+            console.log('Updating on-air display for:', streamerName);
             this.currentOnAirData = streamerName;
             this.onAirName.textContent = streamerName;
             this.onAirInfo.style.display = 'block';
@@ -685,11 +697,14 @@ class RadioPlayer {
             // Add visible class after a small delay for smooth animation
             setTimeout(() => {
                 this.onAirInfo.classList.add('visible');
+                console.log('On-air display should now be visible');
             }, 100);
             
         } else {
+            console.log('No one is live or missing data');
             // No one is live, hide the on-air info
             if (this.currentOnAirData !== null) {
+                console.log('Hiding on-air display');
                 this.currentOnAirData = null;
                 this.onAirInfo.classList.remove('visible');
                 
