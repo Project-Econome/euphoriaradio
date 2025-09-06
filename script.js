@@ -41,7 +41,7 @@ class RadioPlayer {
     }
     
     init() {
-        // Set initial loading state
+        // Set initial loading state - container starts invisible
         this.setInitialLoading(true);
         
         this.playButton.addEventListener('click', () => this.togglePlay());
@@ -178,7 +178,13 @@ class RadioPlayer {
     }
     
     setInitialLoading(loading) {
-        this.radioPlayer.classList.toggle('initial-loading', loading);
+        if (loading) {
+            this.radioPlayer.classList.add('initial-loading');
+            this.radioPlayer.classList.remove('loaded');
+        } else {
+            this.radioPlayer.classList.remove('initial-loading');
+            this.radioPlayer.classList.add('loaded');
+        }
     }
     
     setCoverLoading(loading) {
@@ -516,7 +522,7 @@ class RadioPlayer {
                 setTimeout(() => {
                     this.setInitialLoading(false);
                     this.isInitialLoad = false;
-                }, 500);
+                }, 300);
             }
             
         } catch (error) {
@@ -530,7 +536,7 @@ class RadioPlayer {
                 setTimeout(() => {
                     this.setInitialLoading(false);
                     this.isInitialLoad = false;
-                }, 500);
+                }, 300);
             }
         } finally {
             // Always remove updating state
