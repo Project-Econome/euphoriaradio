@@ -587,19 +587,22 @@ class RadioPlayer {
                     this.setCoverLoading(false);
                 };
                 newImage.onerror = () => {
-                    this.coverImage.src = 'https://via.placeholder.com/200x200/1a1a1a/ffffff?text=Euphoria+Radio';
+                    this.coverImage.src = 'https://via.placeholder.com/200x200/667eea/ffffff?text=Euphoria+Radio';
                     this.coverImage.alt = 'Cover Art';
                     this.setCoverLoading(false);
                 };
                 newImage.src = song.art;
             } else if (!song.art) {
                 // Use default cover art if none available
-                this.coverImage.src = 'https://via.placeholder.com/200x200/1a1a1a/ffffff?text=Euphoria+Radio';
+                this.coverImage.src = 'https://via.placeholder.com/200x200/667eea/ffffff?text=Euphoria+Radio';
                 this.coverImage.alt = 'Cover Art';
             }
             
             // Update page title with current song
             document.title = `${title} - ${artist} | Euphoria Radio`;
+            
+            // Update Open Graph meta tags for better social media embeds
+            this.updateMetaTags(title, artist, song.art);
             
         } else {
             // Fallback for when no data is available
@@ -614,11 +617,48 @@ class RadioPlayer {
             }
             
             // Reset to default cover art
-            this.coverImage.src = 'https://via.placeholder.com/200x200/1a1a1a/ffffff?text=Euphoria+Radio';
+            this.coverImage.src = 'https://via.placeholder.com/200x200/667eea/ffffff?text=Euphoria+Radio';
             this.coverImage.alt = 'Cover Art';
             
             // Reset page title
-            document.title = 'Euphoria Radio';
+            document.title = 'Euphoria Radio - Live Stream';
+            
+            // Reset meta tags to default
+            this.updateMetaTags('Live Stream', 'Euphoria Radio', null);
+        }
+    }
+    
+    updateMetaTags(title, artist, coverArt) {
+        const nowPlayingText = `🎵 Now Playing: ${title} - ${artist}`;
+        const defaultCover = 'https://via.placeholder.com/1200x630/667eea/ffffff?text=Euphoria+Radio';
+        const imageUrl = coverArt || defaultCover;
+        
+        // Update Open Graph meta tags
+        this.updateMetaTag('property', 'og:title', `Euphoria Radio - ${title}`);
+        this.updateMetaTag('property', 'og:description', `${nowPlayingText} | Listen to Euphoria Radio live stream`);
+        this.updateMetaTag('property', 'og:image', imageUrl);
+        this.updateMetaTag('property', 'og:image:alt', `Now Playing: ${title} by ${artist}`);
+        
+        // Update Twitter meta tags
+        this.updateMetaTag('name', 'twitter:title', `Euphoria Radio - ${title}`);
+        this.updateMetaTag('name', 'twitter:description', `${nowPlayingText} | Listen to Euphoria Radio live stream`);
+        this.updateMetaTag('name', 'twitter:image', imageUrl);
+        this.updateMetaTag('name', 'twitter:image:alt', `Now Playing: ${title} by ${artist}`);
+        
+        // Update meta description
+        this.updateMetaTag('name', 'description', `${nowPlayingText} | Listen to Euphoria Radio live stream with the latest hits and now playing information.`);
+    }
+    
+    updateMetaTag(attribute, value, content) {
+        let metaTag = document.querySelector(`meta[${attribute}="${value}"]`);
+        if (metaTag) {
+            metaTag.setAttribute('content', content);
+        } else {
+            // Create the meta tag if it doesn't exist
+            metaTag = document.createElement('meta');
+            metaTag.setAttribute(attribute, value);
+            metaTag.setAttribute('content', content);
+            document.head.appendChild(metaTag);
         }
     }
     
