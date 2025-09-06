@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Euphoria Radio</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="main-content">
+            <div class="radio-player">
+                <button id="themeToggle" class="theme-toggle">
+                    <i class="fas fa-moon"></i>
+                </button>
+                
+                <button id="recentlyPlayedToggle" class="recently-played-toggle">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                
+                <div class="cover-art">
+                    <img id="coverImage" src="https://via.placeholder.com/200x200/1a1a1a/ffffff?text=Euphoria+Radio" alt="Cover Art">
+                </div>
+                
+                <div class="track-info">
+                    <h2 id="songTitle">Now Playing</h2>
+                    <p id="artistName">Euphoria Radio</p>
+                </div>
+                
+                <div class="controls">
+                    <button id="playButton" class="play-btn">
+                        <i class="fas fa-play" id="playIcon"></i>
+                    </button>
+                    <div id="volumeControl" class="volume-control">
+                        <i class="fas fa-volume-up volume-icon"></i>
+                        <input type="range" id="volumeSlider" class="volume-slider" min="0" max="100" value="100">
+                    </div>
+                </div>
+                
+                <div class="station-info">
+                    <h3>Euphoria Radio</h3>
+                </div>
+            </div>
+        </div>
+        
+        <div class="recently-played-container">
+            <div class="recently-played">
+                <h3>Recently Played</h3>
+                <div id="recentlyPlayedList" class="recent-list">
+                    <div class="recent-item loading-placeholder">
+                        <div class="recent-cover">
+                            <div class="placeholder-cover"></div>
+                        </div>
+                        <div class="recent-info">
+                            <div class="placeholder-title"></div>
+                            <div class="placeholder-artist"></div>
+                        </div>
+                    </div>
+                    <div class="recent-item loading-placeholder">
+                        <div class="recent-cover">
+                            <div class="placeholder-cover"></div>
+                        </div>
+                        <div class="recent-info">
+                            <div class="placeholder-title"></div>
+                            <div class="placeholder-artist"></div>
+                        </div>
+                    </div>
+                    <div class="recent-item loading-placeholder">
+                        <div class="recent-cover">
+                            <div class="placeholder-cover"></div>
+                        </div>
+                        <div class="recent-info">
+                            <div class="placeholder-title"></div>
+                            <div class="placeholder-artist"></div>
+                        </div>
+                    </div>
+                    <div class="recent-item loading-placeholder">
+                        <div class="recent-cover">
+                            <div class="placeholder-cover"></div>
+                        </div>
+                        <div class="recent-info">
+                            <div class="placeholder-title"></div>
+                            <div class="placeholder-artist"></div>
+                        </div>
+                    </div>
+                    <div class="recent-item loading-placeholder">
+                        <div class="recent-cover">
+                            <div class="placeholder-cover"></div>
+                        </div>
+                        <div class="recent-info">
+                            <div class="placeholder-title"></div>
+                            <div class="placeholder-artist"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <audio id="audioPlayer" preload="none">
+            <source src="https://weareharmony.net/listen/harmony_radio/radio.mp3" type="audio/mpeg">
+            Your browser does not support the audio element.
+        </audio>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
